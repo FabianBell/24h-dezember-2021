@@ -26,67 +26,71 @@ export class Main extends LitElement {
   modeloptions = ['GFPGAN', 'ARCANE'];
 
   static get styles() {
-    return boostrapStyle;
+    return [
+      css`
+        .row {
+          display: flex;
+          flex-wrap: wrap;
+        }
+        .column {
+          padding: 7px 0px;
+        }
+      `,
+      boostrapStyle,
+    ];
   }
 
   render() {
     return html`
-      <div style="padding: 1%;">
+      <div style="padding: 1%;" class="page-content">
         <h1>Hier k&ouml;nnte Ihre Werbung stehen</h1>
 
-        <div style="padding:7px;">
-          <div style="padding: 7px 0px;">
-            Upload your image:
-            <input
-              id="inputImage"
-              class="form-control"
-              type="file"
-              value="${this.image || ''}"
-              @change="${this._updateFile}"
-            />
-            <img
-              id="inputImage-preview"
-              src=""
-              style="width:100%; padding: 5%;"
-            />
-          </div>
-          <div style="padding: 7px 0px;">
-            Choose your model.
-            <div>
-              <ol id="models">
-                ${repeat(
-                  this.models,
-                  (chosenModell) => html`<li>${chosenModell}</li>`
-                )}
-                ${this.models.map(m => html`<li>${m}</li>`)}
-              </ol>
-              <div>
-              ${repeat(
-                this.modeloptions,
-                (option) => html`<button @click=${() => this._apply(option) }>${option}</button>`
-              )}
+        <div style="padding:7px;" class="row">
+          <div class="column">
+            <div style="padding: 7px 0px;">
+              Upload your image:
+              <input
+                id="inputImage"
+                class="form-control"
+                type="file"
+                value="${this.image || ''}"
+                @change="${this._updateFile}"
+              />
+              <img
+                id="inputImage-preview"
+                src=""
+                style="width:100%; padding: 5%;"
+              />
+            </div>
+            <div style="width: 100%;" class="row">
+              <div class="col-2">
+                <select name="model" id="model" class="btn btn-primary" width="100%"
+                >
+                  ${repeat(
+                    this.modeloptions,
+                    (option) =>
+                      html` <option value="${option}">${option}</option> `
+                  )}
+                </select>
               </div>
-              <div style="padding-top: 7px;">
-              <button @click="${() => {this.models = []; console.log(this.models);}}">&lt;Clear&gt;</button>
+              <div class="col-9">
+                <button
+                  id="submit"
+                  type="button"
+                  class="btn btn-primary"
+                  @click="${this._submit}"
+                  style="width: 100%;"
+                >
+                  Submit !
+                </button>
               </div>
             </div>
           </div>
-          <div style="padding: 7px 0px;">
-            <button
-              id="submit"
-              type="button"
-              class="btn btn-primary"
-              @click="${this._submit}"
-              style="width: 100%;"
-            >
-              Submit !
-            </button>
-          </div>
-          <div style="padding: 7px 0px;">
+          <div class="column">
             <img
               id="output-preview"
               src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-              style="width:100%; padding: 5%;"
+              style="width:50%; padding: 5%;"
             />
             <p id="message"></p>
           </div>
@@ -95,7 +99,7 @@ export class Main extends LitElement {
     `;
   }
 
-  _apply = function (model) {
+  _applyModel = function (model) {
     this.models.push(model);
     console.log(this.models);
   };
@@ -116,13 +120,15 @@ export class Main extends LitElement {
   };
 
   _previewImage = function (file, imageComponent) {
-    this._readAsBase64(file, (base64) => { imageComponent.src = base64 });
+    this._readAsBase64(file, (base64) => {
+      imageComponent.src = base64;
+    });
   };
 
-  _readAsBase64 = function(file, callback) {
+  _readAsBase64 = function (file, callback) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = function(event) {
+    reader.onload = function (event) {
       let base64 = reader.result;
       callback(base64);
     };
@@ -140,24 +146,25 @@ export class Main extends LitElement {
       return;
     }
 
-    if (!this.models || this.models.length < 1) {
-      this.models = [this.modeloptions[0]];
-      console.log("adding default model", this.models);
-    }
+    //// with multi model support
+    // if (!this.models || this.models.length < 1) {
+    //   this.models = [this.modeloptions[0]];
+    //   console.log('adding default model', this.models);
+    // }
+    // const models = this.models;
 
     const extension = this.image.type.split('/').pop();
-    const models = this.models;
+    const models = [this.renderRoot.querySelector('#model').value];
 
-    const wsUri = this.wsUri + this.wsPort + "/websocket";
+    const wsUri = this.wsUri + this.wsPort + '/websocket';
 
     let outputImageComponent = this.renderRoot.querySelector('#output-preview');
     this._previewImage(this.image, outputImageComponent);
 
-    this._readAsBase64(this.image, function(base64) {
-
+    this._readAsBase64(this.image, function (base64) {
       // max 65.536
-      console.log("base64", base64.length);
-      console.log("base64", base64);
+      console.log('base64', base64.length);
+      console.log('base64', base64);
 
       let chunks64 = [];
 
@@ -166,7 +173,7 @@ export class Main extends LitElement {
       const chunk = 10000;
 
       for (i; i < n; i += chunk) {
-        chunks64.push(base64.slice(i, i +  chunk));
+        chunks64.push(base64.slice(i, i + chunk));
       }
 
       console.log(chunks64);
@@ -174,14 +181,14 @@ export class Main extends LitElement {
       console.log(`Websocket to '${wsUri}'`);
 
       const socket = new WebSocket(wsUri);
+      const sessionkey =  '_' + Math.random().toString(36).substr(2, 9);
 
       // EXPECTED:
       // { session: string, img: bytecode, extension: string(png|jpeg|...), models: string[] }
-      socket.addEventListener('open', function(event) {
-
+      socket.addEventListener('open', function (event) {
         // create request.
         const request = {
-          session: 'sessionkey',
+          session: sessionkey,
           extension,
           models: models,
           count: chunks64.length,
@@ -195,7 +202,7 @@ export class Main extends LitElement {
 
         for (; i < n; i++) {
           const request0 = {
-            session: 'sessionkey',
+            session: sessionkey,
             index: i,
             img: chunks64[i],
           };
@@ -206,9 +213,25 @@ export class Main extends LitElement {
 
       // EXPECTED:
       // receive image as string.
-      socket.addEventListener('message', function(event) {
+
+      let receivedMessages = [];
+      let expectedCount = -1;
+
+      socket.addEventListener('message', function (event) {
         console.log('Received Message: ' + event.data);
-        outputImageComponent.src = event.data;
+        const message = JSON.parse(event.data);
+        if (message && message.count) {
+          expectedCount = message.count;
+        } else if (message) {
+          receivedMessages.push(message);
+        }
+
+        if (receivedMessages.length >= expectedCount) {
+          console.log('Rebuild image. ' + event.data);
+          receivedMessages.sort((a, b) => a.index - b.index);
+          const recvImage = receivedMessages.map((msg) => msg.img).join("");
+          outputImageComponent.src = recvImage;
+        }
       });
     });
 
