@@ -36,7 +36,7 @@ def restore(input_channel, method, properties, body):
     _, _, out_img = model.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
     
     # encode
-    out = cv2.imencode(body['extension'], out_img)[1].tobytes()
+    out = cv2.imencode('.' + body['extension'], out_img)[1].tobytes()
     body['image'] = base64.b64encode(out).decode('ascii')
     
     body = json.dumps(body)
