@@ -8,5 +8,6 @@ public abstract class MQController {
   @Setter
   Channel responseChannel;
 
+
   public abstract void consume(byte[] data);
 }

@@ -10,5 +10,4 @@ public class MQSpec {
 
   String taskName;
   String responseName;
-  MQController controller;
 }
