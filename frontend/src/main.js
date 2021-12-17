@@ -148,6 +148,9 @@ export class Main extends LitElement {
 
     const wsUri = this.wsUri + this.wsPort + "/websocket";
 
+    let outputImageComponent = this.renderRoot.querySelector('#output-preview');
+    this._previewImage(this.image, outputImageComponent);
+
     this._readAsBase64(this.image, function(base64) {
 
       // max 65.536
@@ -203,6 +206,7 @@ export class Main extends LitElement {
       // receive image as string.
       socket.addEventListener('message', function(event) {
         console.log('Received Message: ' + event.data);
+        outputImageComponent.src = event.data;
       });
     });
 
@@ -211,9 +215,6 @@ export class Main extends LitElement {
         <span style="color: blue; font-weight: normal;">
           Uploading ...
         </span>`;
-
-    let outputImageComponent = this.renderRoot.querySelector('#output-preview');
-    this._previewImage(this.image, outputImageComponent);
   };
 }
 
