@@ -60,11 +60,15 @@ export class Main extends LitElement {
                 )}
                 ${this.models.map(m => html`<li>${m}</li>`)}
               </ol>
+              <div>
               ${repeat(
                 this.modeloptions,
                 (option) => html`<button @click=${() => this._apply(option) }>${option}</button>`
               )}
-              <button @click="${() => console.log('Nope')}">...</button>
+              </div>
+              <div style="padding-top: 7px;">
+              <button @click="${() => {this.models = []; console.log(this.models);}}">&lt;Clear&gt;</button>
+              </div>
             </div>
           </div>
           <div style="padding: 7px 0px;">
@@ -109,8 +113,6 @@ export class Main extends LitElement {
     // preview file.
     let filePreviewer = this.renderRoot.querySelector('#inputImage-preview');
     let reader = this._previewImage(file, filePreviewer);
-
-    console.log(reader.result);
   };
 
   _previewImage = function (file, imageComponent) {
