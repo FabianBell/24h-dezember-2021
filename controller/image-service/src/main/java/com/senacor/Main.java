@@ -120,7 +120,6 @@ public class Main {
             List<String> methods = IntStream.range(0, jsonMethods.size()).mapToObj(jsonMethods::getString).collect(Collectors.toList());
             String extension = body.getString("extension");
             int count = body.getInteger("count");
-            System.out.println("COUNT: " + count);
             UserSession userSession = UserSession.builder().methods(methods).extensions(extension).socket(session)
                 .count(count).img("").build();
             sessions.put(id, userSession);
@@ -129,11 +128,11 @@ public class Main {
             int index = body.getInteger("index");
             String img = userSession.getImg() + body.getString("img");
             userSession.setImg(img);
-            System.out.println("FOUND: " + index + " with length " + userSession.getImg().length());
             if (index == userSession.getCount() - 1){
+                // drop type
+                String image = userSession.getImg().split("base64,")[1];
+                userSession.setImg(image);
                 performMethod(id);
-                //FileOutputStream outputStream = new FileOutputStream("TEST.jpg");
-                //outputStream.write(Base64.getDecoder().decode(userSession.getImg()));
             }
         }
     }
