@@ -10,7 +10,16 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Hello world!
+ * This is the Controller.
+ *
+ * This will use a WebSocket to communicate with a Frontend thing and use
+ * RabbitMQ Client Things to distribute the tasks to model things.
+ *
+ *  1. Receive request on websocket from frontend --- Who send which call, map and save it for later.
+ *  2. Read what to do and in which order ----------- First decisisions and forwarding.
+ *  3. Send to each channel with a modell thingy ---- Comm. channel to send others
+ *  4. Receive modified picture bytes or so. -------- Comm. channel to consume from channels.
+ *  5. Send back to corresponding frontend. --------- Back to connected frontend.
  */
 public class App
 {
@@ -24,8 +33,6 @@ public class App
         // factory.setUsername();
         // factory.setPassword();
         // factory.setPort();
-
-        // final Channel channel;
 
         try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
             boolean durable = false;
@@ -51,6 +58,7 @@ public class App
             // };
             // boolean autoAck = true;
             // channel.basicConsume(QUEUE_NAME, autoAck, deliverCallback, consumerTag -> { });
+
         } catch (IOException|TimeoutException e) {
             System.err.println("Yeah, there's someting strange." + e.toString());
             e.printStackTrace();
