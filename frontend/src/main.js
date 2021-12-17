@@ -90,7 +90,7 @@ export class Main extends LitElement {
             <img
               id="output-preview"
               src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-              style="width:50%; padding: 5%;"
+              style="width:100%; padding: 5%;"
             />
             <p id="message"></p>
           </div>
@@ -163,9 +163,6 @@ export class Main extends LitElement {
 
     this._readAsBase64(this.image, function (base64) {
       // max 65.536
-      console.log('base64', base64.length);
-      console.log('base64', base64);
-
       let chunks64 = [];
 
       let i = 0;
@@ -176,7 +173,7 @@ export class Main extends LitElement {
         chunks64.push(base64.slice(i, i + chunk));
       }
 
-      console.log(chunks64);
+      // console.log(chunks64);
 
       console.log(`Websocket to '${wsUri}'`);
 
@@ -207,7 +204,7 @@ export class Main extends LitElement {
             img: chunks64[i],
           };
           socket.send(JSON.stringify(request0));
-          console.log('Send request', JSON.stringify(request0));
+          // console.log('Send request', JSON.stringify(request0));
         }
       });
 
