@@ -37,6 +37,7 @@ public class Main {
     private HashMap<String, MQSpec> mqSpecMap;
     private Connection connection;
     private HashMap<String, Channel> channelMap;
+    private static int CHUNCKSIZE = 10000;
 
     public Main() throws IOException, TimeoutException {
         System.out.println("STARTED");
@@ -73,6 +74,7 @@ public class Main {
         JsonObject response = new JsonObject(new String(body));
         String id = response.getString("sessionkey");
         String img = response.getString("image");
+        System.out.println("DEBUG: " + id);
         UserSession userSession = sessions.get(id);
         userSession.setImg(img);
         performMethod(id);
@@ -106,7 +108,18 @@ public class Main {
 
     private void sendResponse(String id){
         UserSession userSession = sessions.get(id);
-        userSession.getSocket().getAsyncRemote().sendText(userSession.getImg());
+        String img = userSession.getType() + userSession.getImg();
+        int count = (int) Math.ceil((float) img.length() / (float) CHUNCKSIZE);
+        JsonObject body = new JsonObject();
+        body.put("count", count);
+        userSession.getSocket().getAsyncRemote().sendText(body.toString());
+        for (int i = 0; i < count; i++){
+            String section = img.substring(i, i+CHUNCKSIZE);
+            body = new JsonObject();
+            body.put("index", i);
+            body.put("img", section);
+            userSession.getSocket().getAsyncRemote().sendText(body.toString());
+        }
         sessions.remove(id);
     }
 
@@ -123,6 +136,7 @@ public class Main {
             UserSession userSession = UserSession.builder().methods(methods).extensions(extension).socket(session)
                 .count(count).img("").build();
             sessions.put(id, userSession);
+            System.out.println("CREATE SESSION with id " + id);
         }else{
             UserSession userSession = sessions.get(id);
             int index = body.getInteger("index");
@@ -130,7 +144,9 @@ public class Main {
             userSession.setImg(img);
             if (index == userSession.getCount() - 1){
                 // drop type
-                String image = userSession.getImg().split("base64,")[1];
+                String[] split = userSession.getImg().split("base64,");
+                userSession.setType(split[0] + "base64,");
+                String image = split[1];
                 userSession.setImg(image);
                 performMethod(id);
             }

@@ -14,4 +14,5 @@ public class UserSession {
   String extensions;
   Session socket;
   int count;
+  String type;
 }
