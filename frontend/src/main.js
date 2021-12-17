@@ -18,7 +18,7 @@ import {repeat} from 'lit/directives/repeat.js';
 export class Main extends LitElement {
   image = null;
   imageBase64 = '';
-  modells = [];
+  models = [];
   webSocket = null;
 
   modeloptions = ['GFPGRAN', 'ARCANA'];
@@ -49,11 +49,11 @@ export class Main extends LitElement {
             />
           </div>
           <div style="padding: 7px 0px;">
-            Choose your modell.
+            Choose your model.
             <div>
-              <ol id="modells">
+              <ol id="models">
                 ${repeat(
-                  this.modells,
+                  this.models,
                   (chosenModell) => html`<li>${chosenModell}</li>`
                 )}
               </ol>
@@ -86,9 +86,9 @@ export class Main extends LitElement {
     `;
   }
 
-  _apply = function (modell) {
-    this.modells.push(modell);
-    console.log(this.modells);
+  _apply = function (model) {
+    this.models.push(model);
+    console.log(this.models);
   };
 
   _updateFile = function () {
@@ -135,7 +135,7 @@ export class Main extends LitElement {
     let request = {
       image: this.image.name,
       extension: this.image.type,
-      modells: this.modells,
+      models: this.models,
       sessionkey: 'sessionkey',
     };
 
@@ -155,12 +155,15 @@ export class Main extends LitElement {
     this._foo();
 
     if (this.webSocket) {
+      debugger;
       this.webSocket.send("Hello websocket" + JSON.stringify(request));
+    } else {
+      console.log("No websocket initated");
+      console.log("Hello websocket" + JSON.stringify(request));
     }
   };
 
   _foo = function () {
-    debugger;
     if (window.WebSocket === undefined) {
       console.log('sockets not supported');
     } else {
