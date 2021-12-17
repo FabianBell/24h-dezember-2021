@@ -161,7 +161,7 @@ export class Main extends LitElement {
 
       let i = 0;
       const n = base64.length;
-      const chunk = 1000;
+      const chunk = 10000;
 
       for (i; i < n; i += chunk) {
         chunks64.push(base64.slice(i, i +  chunk));
