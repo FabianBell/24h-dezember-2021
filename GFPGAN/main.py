@@ -19,6 +19,7 @@ model = GFPGANer(
 
 host = os.environ.get('MQ_HOST')
 host = host if host is not None else 'localhost'
+print(f"Using hostname {host}")
 connection = pika.BlockingConnection(pika.ConnectionParameters(host))
 output_channel = connection.channel()
 output_channel.queue_declare(queue=OUTPUT_NAME)

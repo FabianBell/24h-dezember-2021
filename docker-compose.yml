@@ -6,4 +6,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    hostname: mq
+  restore_service:
+    image: restore_service:latest
+    restart: unless-stopped
+    environment:
+        - MQ_HOST=mq
