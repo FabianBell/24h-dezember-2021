@@ -26,6 +26,7 @@ import com.senacor.models.UserSession;
 import com.senacor.websocket.RestoreController;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.User;
 
 @ApplicationScoped
 @ServerEndpoint("/websocket")
@@ -38,9 +39,13 @@ public class Main {
     public Main() throws IOException, TimeoutException {
         System.out.println("STARTED");
         mqSpecMap = new HashMap<>();
+
         mqSpecMap.put("GFPGAN", MQSpec.builder()
             .taskName("FACE_RESTORE_TASK")
             .responseName("FACE_RESTORE_RESPONSE").build());
+        mqSpecMap.put("ARCANE", MQSpec.builder()
+            .taskName("ARCANE_TASK")
+            .responseName("ARCANE_RESPONSE").build());
 
         ConnectionFactory factory = new ConnectionFactory();
         String host = System.getenv("MQ_HOST");
@@ -89,26 +94,40 @@ public class Main {
             case "GFPGAN":
                 channelMap.get("GFPGAN").basicPublish("", mqSpecMap.get("GFPGAN").getTaskName(), null, body.toString().getBytes());
                 break;
+            case "ARCANA":
+                channelMap.get("ARCANE").basicPublish("", mqSpecMap.get("ARCANE").getTaskName(), null, body.toString().getBytes());
             default:
-                throw new RuntimeException("Unknown message type");
+                throw new RuntimeException("Unknown message type: " + nextMethod);
         }
     }
 
     private void sendResponse(String id){
         UserSession userSession = sessions.get(id);
         userSession.getSocket().getAsyncRemote().sendText(userSession.getImg());
+        sessions.remove(id);
     }
 
     @OnMessage
     public void onMessage(Session session, String message) throws IOException {
         JsonObject body = new JsonObject(message);
-        JsonArray jsonMethods = body.getJsonArray("models");
-        List<String> methods = IntStream.range(0, jsonMethods.size()).mapToObj(jsonMethods::getString).collect(Collectors.toList());
         String id = body.getString("session");
-        String img = body.getString("img");
-        String extension = body.getString("extension");
-        UserSession userSession = UserSession.builder().methods(methods).img(img).extensions(extension).socket(session).build();
-        sessions.put(id, userSession);
-        performMethod(id);
+        if (body.containsKey("count")){
+            // new session
+            JsonArray jsonMethods = body.getJsonArray("models");
+            List<String> methods = IntStream.range(0, jsonMethods.size()).mapToObj(jsonMethods::getString).collect(Collectors.toList());
+            String extension = body.getString("extension");
+            int count = body.getInteger("count");
+            UserSession userSession = UserSession.builder().methods(methods).extensions(extension).socket(session)
+                .count(count).build();
+            sessions.put(id, userSession);
+        }else{
+            UserSession userSession = sessions.get(id);
+            int index = body.getInteger("index");
+            String img = userSession.getImg() + body.getString("img");
+            userSession.setImg(img);
+            if (index == userSession.getCount() - 1){
+                performMethod(id);
+            }
+        }
     }
 }

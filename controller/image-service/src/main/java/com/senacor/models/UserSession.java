@@ -13,4 +13,5 @@ public class UserSession {
   String img;
   String extensions;
   Session socket;
+  int count;
 }
