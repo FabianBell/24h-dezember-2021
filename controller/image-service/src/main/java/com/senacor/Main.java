@@ -8,7 +8,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,8 +96,9 @@ public class Main {
             case "GFPGAN":
                 channelMap.get("GFPGAN").basicPublish("", mqSpecMap.get("GFPGAN").getTaskName(), null, body.toString().getBytes());
                 break;
-            case "ARCANA":
+            case "ARCANE":
                 channelMap.get("ARCANE").basicPublish("", mqSpecMap.get("ARCANE").getTaskName(), null, body.toString().getBytes());
+                break;
             default:
                 throw new RuntimeException("Unknown message type: " + nextMethod);
         }
@@ -117,16 +120,20 @@ public class Main {
             List<String> methods = IntStream.range(0, jsonMethods.size()).mapToObj(jsonMethods::getString).collect(Collectors.toList());
             String extension = body.getString("extension");
             int count = body.getInteger("count");
+            System.out.println("COUNT: " + count);
             UserSession userSession = UserSession.builder().methods(methods).extensions(extension).socket(session)
-                .count(count).build();
+                .count(count).img("").build();
             sessions.put(id, userSession);
         }else{
             UserSession userSession = sessions.get(id);
             int index = body.getInteger("index");
             String img = userSession.getImg() + body.getString("img");
             userSession.setImg(img);
+            System.out.println("FOUND: " + index + " with length " + userSession.getImg().length());
             if (index == userSession.getCount() - 1){
                 performMethod(id);
+                //FileOutputStream outputStream = new FileOutputStream("TEST.jpg");
+                //outputStream.write(Base64.getDecoder().decode(userSession.getImg()));
             }
         }
     }
