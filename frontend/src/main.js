@@ -114,29 +114,15 @@ export class Main extends LitElement {
   };
 
   _previewImage = function (file, imageComponent) {
-    let reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = function () {
-      // preview.
-      imageComponent.src = reader.result;
-    };
-    return reader;
+    this._readAsBase64(file, (base64) => { imageComponent.src = base64 });
   };
 
-  _readAsByteArray = function(file, callback) {
+  _readAsBase64 = function(file, callback) {
     const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onloadend = function(event) {
-      if (event.target.readyState == FileReader.DONE) {
-        let byteArray = [];
-        let arrayBuffer = event.target.result;
-        let array = new Uint8Array(arrayBuffer);
-
-        for (const i in array) {
-          byteArray.push(i);
-        }
-        callback(byteArray);
-      }
+    reader.readAsDataURL(file);
+    reader.onload = function(event) {
+      let base64 = reader.result;
+      callback(base64);
     };
   };
 
@@ -162,21 +148,23 @@ export class Main extends LitElement {
 
     const wsUri = this.wsUri + this.wsPort + "/websocket";
 
-    this._readAsByteArray(this.image, function(array) {
+    this._readAsBase64(this.image, function(base64) {
 
-      let byteString = "";
+      // max 65.536
+      console.log("base64", base64.length);
+      console.log("base64", base64);
 
-      for (const byte in array) {
-        byteString += String.fromCharCode(byte);
+      let chunks64 = [];
+
+      let i = 0;
+      const n = base64.length;
+      const chunk = 1000;
+
+      for (i; i < n; i += chunk) {
+        chunks64.push(base64.slice(i, i +  chunk));
       }
 
-      // create request.
-      const request = {
-        session: 'sessionkey',
-        img: byteString,
-        extension,
-        models: models,
-      };
+      console.log(chunks64);
 
       console.log(`Websocket to '${wsUri}'`);
 
@@ -185,8 +173,30 @@ export class Main extends LitElement {
       // EXPECTED:
       // { session: string, img: bytecode, extension: string(png|jpeg|...), models: string[] }
       socket.addEventListener('open', function(event) {
-        console.log('Send request', JSON.stringify(request));
+
+        // create request.
+        const request = {
+          session: 'sessionkey',
+          extension,
+          models: models,
+          count: chunks64.length,
+        };
+
         socket.send(JSON.stringify(request));
+        console.log('Send request', JSON.stringify(request));
+
+        let i = 0;
+        let n = chunks64.length;
+
+        for (; i < n; i++) {
+          const request0 = {
+            session: 'sessionkey',
+            index: i,
+            img: chunks64[i],
+          };
+          socket.send(JSON.stringify(request0));
+          console.log('Send request', JSON.stringify(request0));
+        }
       });
 
       // EXPECTED:
