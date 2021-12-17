@@ -17,7 +17,7 @@ import {repeat} from 'lit/directives/repeat.js';
  */
 export class Main extends LitElement {
   image = null;
-  imageBase64 = '';
+  imageByteArray = [];
   models = [];
 
   wsUri = 'ws://localhost:';
@@ -108,21 +108,36 @@ export class Main extends LitElement {
 
     // preview file.
     let filePreviewer = this.renderRoot.querySelector('#inputImage-preview');
-    let reader = this._getBase64(file, filePreviewer);
+    let reader = this._previewImage(file, filePreviewer);
 
     console.log(reader.result);
   };
 
-  _getBase64 = function (file, imageComponent) {
+  _previewImage = function (file, imageComponent) {
     let reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = function () {
-      this.imageBase64 = reader.result;
-
       // preview.
-      imageComponent.src = this.imageBase64;
+      imageComponent.src = reader.result;
     };
     return reader;
+  };
+
+  _readAsByteArray = function(file, callback) {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onloadend = function(event) {
+      if (event.target.readyState == FileReader.DONE) {
+        let byteArray = [];
+        let arrayBuffer = event.target.result;
+        let array = new Uint8Array(arrayBuffer);
+
+        for (const i in array) {
+          byteArray.push(i);
+        }
+        callback(byteArray);
+      }
+    };
   };
 
   _submit = function () {
@@ -137,39 +152,58 @@ export class Main extends LitElement {
       return;
     }
 
-    let request = {
-      image: this.image.name,
-      extension: this.image.type,
-      models: this.models,
-      sessionkey: 'sessionkey',
-    };
+    if (!this.models || this.models.length < 1) {
+      this.models = [this.modeloptions[0]];
+      console.log("adding default model", this.models);
+    }
 
-    console.log(request);
+    const extension = this.image.type.split('/').pop();
+    const models = this.models;
 
+    const wsUri = this.wsUri + this.wsPort + "/websocket";
+
+    this._readAsByteArray(this.image, function(array) {
+
+      let byteString = "";
+
+      for (const byte in array) {
+        byteString += String.fromCharCode(byte);
+      }
+
+      // create request.
+      const request = {
+        session: 'sessionkey',
+        img: byteString,
+        extension,
+        models: models,
+      };
+
+      console.log(`Websocket to '${wsUri}'`);
+
+      const socket = new WebSocket(wsUri);
+
+      // EXPECTED:
+      // { session: string, img: bytecode, extension: string(png|jpeg|...), models: string[] }
+      socket.addEventListener('open', function(event) {
+        console.log('Send request', JSON.stringify(request));
+        socket.send(JSON.stringify(request));
+      });
+
+      // EXPECTED:
+      // receive image as string.
+      socket.addEventListener('message', function(event) {
+        console.log('Received Message: ' + event.data);
+      });
+    });
+
+    // show state.
     messageComponent.innerHTML = `
         <span style="color: blue; font-weight: normal;">
           Uploading ...
         </span>`;
 
-    // console.log(this.imageBase64);
-
     let outputImageComponent = this.renderRoot.querySelector('#output-preview');
-    // outputImageComponent.src = this.image;
-    this._getBase64(this.image, outputImageComponent);
-
-    const wsUri = this.wsUri + this.wsPort + "/websocket";
-
-    console.log(`Websocket to '${wsUri}'`);
-
-    const socket = new WebSocket(wsUri);
-
-    socket.addEventListener('open', function(event) {
-      socket.send('Hello Server! ' + JSON.stringify(request));
-    });
-
-    socket.addEventListener('message', function(event) {
-      console.log('Received Message: ' + event.data);
-    });
+    this._previewImage(this.image, outputImageComponent);
   };
 }
 
