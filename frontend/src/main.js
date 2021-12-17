@@ -23,7 +23,7 @@ export class Main extends LitElement {
   wsUri = 'ws://localhost:';
   wsPort = '8080';
 
-  modeloptions = ['GFPGAN', 'ARCANA'];
+  modeloptions = ['GFPGAN', 'ARCANE'];
 
   static get styles() {
     return boostrapStyle;
