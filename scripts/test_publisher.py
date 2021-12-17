@@ -11,7 +11,8 @@ body = {
     'sessionkey' : 1
 }
 
-OUPUT_NAME = "FACE_RESTORE_TASK" 
+#OUPUT_NAME = "FACE_RESTORE_TASK" 
+OUPUT_NAME = "ARCANE_TASK" 
 
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))  
 output_channel = connection.channel()

@@ -11,3 +11,8 @@ services:
     restart: unless-stopped
     environment:
         - MQ_HOST=mq
+  arcane_service:
+    image: arcane_service:latest
+    restart: unless-stopped
+    environment:
+        - MQ_HOST=mq

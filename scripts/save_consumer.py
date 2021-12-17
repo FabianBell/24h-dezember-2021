@@ -3,7 +3,8 @@ import json
 import base64
 
 
-INPUT_NAME = "FACE_RESTORE_RESPONSE"
+#INPUT_NAME = "FACE_RESTORE_RESPONSE"
+INPUT_NAME = "ARCANE_RESPONSE"
 
 def save(output_channel, method, properties, body):
     body = json.loads(body)
