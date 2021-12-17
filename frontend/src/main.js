@@ -19,9 +19,11 @@ export class Main extends LitElement {
   image = null;
   imageBase64 = '';
   models = [];
-  webSocket = null;
 
-  modeloptions = ['GFPGRAN', 'ARCANA'];
+  wsUri = 'ws://localhost:';
+  wsPort = '8080';
+
+  modeloptions = ['GFPGAN', 'ARCANA'];
 
   static get styles() {
     return boostrapStyle;
@@ -56,9 +58,12 @@ export class Main extends LitElement {
                   this.models,
                   (chosenModell) => html`<li>${chosenModell}</li>`
                 )}
+                ${this.models.map(m => html`<li>${m}</li>`)}
               </ol>
-              <button @click="${() => this._apply('GFPGRAN')}">GFPGRAN</button>
-              <button @click="${() => this._apply('ARCANA')}">ARCANA</button>
+              ${repeat(
+                this.modeloptions,
+                (option) => html`<button @click=${() => this._apply(option) }>${option}</button>`
+              )}
               <button @click="${() => console.log('Nope')}">...</button>
             </div>
           </div>
@@ -152,57 +157,20 @@ export class Main extends LitElement {
     // outputImageComponent.src = this.image;
     this._getBase64(this.image, outputImageComponent);
 
-    this._foo();
+    const wsUri = this.wsUri + this.wsPort + "/websocket";
 
-    if (this.webSocket) {
-      debugger;
-      this.webSocket.send("Hello websocket" + JSON.stringify(request));
-    } else {
-      console.log("No websocket initated");
-      console.log("Hello websocket" + JSON.stringify(request));
-    }
+    console.log(`Websocket to '${wsUri}'`);
+
+    const socket = new WebSocket(wsUri);
+
+    socket.addEventListener('open', function(event) {
+      socket.send('Hello Server! ' + JSON.stringify(request));
+    });
+
+    socket.addEventListener('message', function(event) {
+      console.log('Received Message: ' + event.data);
+    });
   };
-
-  _foo = function () {
-    if (window.WebSocket === undefined) {
-      console.log('sockets not supported');
-    } else {
-      //
-      window.addEventListener('load', this.onLoad, false);
-    }
-  };
-
-  onLoad = function () {
-    let port = '7777';
-    let wsUri = 'ws://127.0.0.1:' + port;
-    this.webSocket = new WebSocket(wsUri);
-    this.webSocket.onopen = function (evt) {
-      this.onOpen(evt);
-    };
-    this.webSocket.onmessage = function (evt) {
-      this.onMessage(evt);
-    };
-    this.webSocket.onerror = function (evt) {
-      this.onError(evt);
-    };
-  };
-
-  onOpen = function (evt) {
-    console.log('Open', evt);
-  };
-
-  onMessage = function (evt) {
-    console.log('Message', evt);
-  };
-
-  onClose = function (evt) {
-    console.log('Close', evt);
-  };
-
-  // _onClick() {
-  //   this.count++;
-  //   this.dispatchEvent(new CustomEvent('count-changed'));
-  // }
 }
 
 window.customElements.define('service-main', Main);
