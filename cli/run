@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+import os
+import logging
+import argparse
+import time
+
+from enum import Enum
+import base64
+import json
+import pika
+import sys
+
+INPUT_BASE = '_RESPONSE'
+OUTPUT_BASE = '_TASK'
+
+def save(output_channel, method, properties, body):
+    body = json.loads(body)
+    img = base64.b64decode(body['image'])
+    with open('out.jpg', 'wb') as fout:
+        fout.write(img)
+    sys.exit(0)
+
+def main(args):
+    input_name = args.model + INPUT_BASE
+    output_name = args.model + OUTPUT_BASE
+    with open(args.input_file, 'rb') as fin:
+        data = fin.read()
+
+    body = {
+        'image' : base64.b64encode(data).decode('ascii'),
+        'extension' : args.input_file.split('.')[-1],
+        'sessionkey' : 1
+    }
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))  
+    input_channel = connection.channel()
+    input_channel.queue_declare(queue=input_name)
+    input_channel.basic_consume(
+            queue=input_name,
+            auto_ack=True,
+            on_message_callback=save)
+
+    output_channel = connection.channel()
+    output_channel.queue_declare(queue=output_name)
+    output_channel.basic_publish(
+        exchange="",
+        routing_key=output_name,
+        body=json.dumps(body))
+    
+    input_channel.start_consuming()
+
+def dir_path(path : str) -> str:
+    """
+    Type check for argparse
+    """
+    if os.path.isdir(path):
+        return path
+    raise NotADirectoryError(path)
+
+def file_path(path : str) -> str:
+    """
+    Type check of argparse
+    """
+    if os.path.isfile(path):
+        return path
+    raise FileNotFoundError(path)
+
+def enum_type(enum):
+    def _check_type(seq : str) -> str:
+        try:
+            enum[seq]
+        except KeyError:
+            raise ValueError(seq)
+        return seq
+    return _check_type
+
+class ModelType(Enum):
+    FACE_RESTORE = 1
+    ARCANE = 1
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Model Cluster CLI')
+    
+    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true')
+    parser.add_argument('input_file', type=file_path, help='Input File')
+    parser.add_argument('model', type=enum_type(ModelType), help='[FACE_RESTORE, ARCANE]')
+
+    args = parser.parse_args()
+    if args.verbose is True:
+        logging.basicConfig(level=logging.INFO)
+    start = time.time()
+    logging.info('Start.')
+    out = main(args)
+    end = time.time()
+    logging.info('Finished. Time: {}'.format(end-start))

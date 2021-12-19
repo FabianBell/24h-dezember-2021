@@ -6,5 +6,5 @@ gfpgan:
 	cd GFPGAN; docker build -t restore_service .
 
 arcane:
-	cd ArcaneGAN; docker build -t arcane_service
+	cd ArcaneGAN; docker build -t arcane_service .
 	
