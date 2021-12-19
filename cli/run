@@ -13,24 +13,24 @@ import sys
 INPUT_BASE = '_RESPONSE'
 OUTPUT_BASE = '_TASK'
 
+files = []
+
 def save(output_channel, method, properties, body):
     body = json.loads(body)
     img = base64.b64decode(body['image'])
-    with open('out.jpg', 'wb') as fout:
+    file_name = body['sessionkey']
+    print(f'Write {file_name}')
+    with open('out_' + file_name, 'wb') as fout:
         fout.write(img)
-    sys.exit(0)
+    files.remove(file_name)
+    if len(files) == 0:
+        sys.exit(0)
 
 def main(args):
+    files.extend(args.input_files)
     input_name = args.model + INPUT_BASE
     output_name = args.model + OUTPUT_BASE
-    with open(args.input_file, 'rb') as fin:
-        data = fin.read()
-
-    body = {
-        'image' : base64.b64encode(data).decode('ascii'),
-        'extension' : args.input_file.split('.')[-1],
-        'sessionkey' : 1
-    }
+    
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))  
     input_channel = connection.channel()
     input_channel.queue_declare(queue=input_name)
@@ -39,12 +39,22 @@ def main(args):
             auto_ack=True,
             on_message_callback=save)
 
-    output_channel = connection.channel()
-    output_channel.queue_declare(queue=output_name)
-    output_channel.basic_publish(
-        exchange="",
-        routing_key=output_name,
-        body=json.dumps(body))
+    for input_file in args.input_files:
+        with open(input_file, 'rb') as fin:
+            data = fin.read()
+
+        body = {
+            'image' : base64.b64encode(data).decode('ascii'),
+            'extension' : input_file.split('.')[-1],
+            'sessionkey' : input_file
+        }
+
+        output_channel = connection.channel()
+        output_channel.queue_declare(queue=output_name)
+        output_channel.basic_publish(
+            exchange="",
+            routing_key=output_name,
+            body=json.dumps(body))
     
     input_channel.start_consuming()
 
@@ -81,7 +91,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model Cluster CLI')
     
     parser.add_argument('--verbose', '-v', dest='verbose', action='store_true')
-    parser.add_argument('input_file', type=file_path, help='Input File')
+    parser.add_argument('input_files', type=file_path, help='Input Files', nargs='+')
     parser.add_argument('model', type=enum_type(ModelType), help='[FACE_RESTORE, ARCANE]')
 
     args = parser.parse_args()

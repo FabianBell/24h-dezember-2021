@@ -144,7 +144,7 @@ def consume(input_channel, method, properties, body):
 
     # encode
     extension = body['extension']
-    if extension == 'jpg':
+    if extension.lower() == 'jpg':
         extension = 'JPEG'
     out = io.BytesIO()
     img.save(out, format=extension)
